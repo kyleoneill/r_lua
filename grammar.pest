@@ -1,0 +1,92 @@
+// _{ ... } indicates that this rule is silent and will not produce pairs, but its called rules will (unless they are also marked silent)
+// @{ ... } indicates atomic with silent interior rules
+// ${ ... } indicates atomic with normal interior rules
+//          An atomic rule prevents implicit whitespaces
+
+Newline = _{ "\n" | "\r\n" }
+WHITESPACE = _{ " " | "\t" | Newline }
+COMMENT = _{ "--" ~ (!Newline ~ ANY)* }
+
+Main = _{ SOI ~ Chunk ~  EOI }
+
+ReservedKeywords = { "and" | "break" | "do" | "else" | "elseif" | "end" | "false" | "for" | "function" | "goto" | "if" | "in" | "local" | "nil" | "not" | "or" | "repeat" | "return" | "then" | "true" | "until" | "while" }
+
+Name = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+LiteralString = {"'" ~ StringInner ~ "'" | "\"" ~ StringInner ~ "\""}
+StringInner = @{ Char* }
+Char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+Numerical = @{
+    "-"?
+    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+    ~ ("." ~ ASCII_DIGIT*)?
+}
+Expansion = { "..." }
+
+Chunk = _{ Block }
+
+Block = { Stat* ~ RetStat? }
+
+RetStat = { "return" ~ ExpList? ~ ";"? }
+
+Stat = {
+    ";"
+    | VarList ~ "=" ~ ExpList
+    | FunctionCall
+    | Label
+    | "break"
+    | "goto" ~ Name
+    | "do" ~ Block ~ "end"
+    | "while" ~ Expression ~ "do" ~ Block ~ "end"
+    | "repeat" ~ Block ~ "until" ~ Expression
+    | "if" ~ Expression ~ "then" ~ Block ~ ("elseif" ~ Expression ~ "then" ~ Block)* ~ ("else" ~ Block)? ~ "end"
+    | "for" ~ Name ~ "=" ~ Expression ~ "," ~ Expression ~ ("," ~ Expression)? ~ "do" ~ Block ~ "end"
+    | "for" ~ NameList ~ "in" ~ ExpList ~ "do" ~ Block ~ "end"
+    | "function" ~ FunctionName ~ FunctionBody
+    | "local function" ~ Name ~ FunctionBody
+    | "local" ~ AttributeNameList ~ ("=" ~ ExpList)?
+    ~ NEWLINE?
+}
+
+Label = { "::" ~ Name ~ "::" }
+Attribute = { ("<" ~ Name ~ ">")? }
+
+// Lists
+ExpList = { Expression ~ ( "," ~ Expression )* }
+NameList = { Name ~ ("," ~ Name)* }
+VarList = { Var ~ ("," ~ Var)* }
+ParList = { NameList ~ ("," ~ Expansion)? | Expansion }
+AttributeNameList = { Name ~ Attribute ~ ("," ~ Name ~ Attribute)* }
+
+Var = { Name ~ "." ~ Name ~ ("." ~ Name)* | Name | Name ~ "[" ~ Expression ~ "]" } //{ Name | Var ~ "[" ~ Expression ~ "]" | Var ~ "." ~ Name }
+
+// Expressions
+ExpressionInner = { "nil" | "false" | "true" | Numerical | LiteralString | Expansion | FunctionDef | TableConstructor } // | PrefixExpression
+// This is a non-complete Expression broken down to avoid recursion, as resolving that will be difficult given the time constraint
+OperatorExpression = { ExpressionInner ~ BinaryOperator ~ ExpressionInner | UnaryOperator ~ ExpressionInner }
+Expression = { ExpressionInner | OperatorExpression }
+
+// PrefixExpression = { Var | FunctionCall | "(" ~ Expression ~ ")" }
+
+Args = { "(" ~ ExpList? ~ ")" | TableConstructor | LiteralString }
+
+// Functions
+FunctionCall = { Name ~ Args }//{ PrefixExpression ~ Args | PrefixExpression ~ ":" ~ Name ~ Args }
+FunctionDef = { "function" ~ FunctionBody }
+FunctionBody = { "(" ~ ParList? ~ ")" ~ Block ~ "end" }
+FunctionName = { Name ~ ("." ~ Name)* ~ ( ":" ~ Name )? }
+
+// Fields
+FieldList = { Field ~ (FieldSep ~ Field)* ~ FieldSep? }
+Field = { "[" ~ Expression ~ "]" ~ "=" ~ Expression | Name ~ "=" ~ Expression | Expression }
+FieldSep = { "," | ";" }
+
+// Operators
+BinaryOperator = { "+" | "-" | "*" | "/" | "//" | "^" | "%" | "&" | "~" | "|" | ">>" | "<<" | ".." | "<" | "<=" | ">" | ">=" | "==" | "~=" | "and" | "or" }
+UnaryOperator = { "-" | "not" | "#" | "~" }
+
+// Table
+TableConstructor = { "{" ~ FieldList? ~ "}" }

@@ -1,0 +1,9 @@
+[package]
+name = "r_lua"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pest = "2.7.10"
+pest_derive = "2.7.3"
+clap = { version = "4.4.3", features = ["derive"] }
