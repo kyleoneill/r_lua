@@ -19,37 +19,49 @@ Char = {
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
-Numerical = @{
-    "-"?
-    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
-    ~ ("." ~ ASCII_DIGIT*)?
-}
+Numerical = @{ Float | Integer }
+Float = @{ "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ "." ~ ASCII_DIGIT+ }
+Integer = @{ "0" | "-"? ~  ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*}
+
 Expansion = { "..." }
 
 Chunk = _{ Block }
 
 Block = { Stat* ~ RetStat? }
 
+// Statements
 RetStat = { "return" ~ ExpList? ~ ";"? }
-
 Stat = {
-    ";"
-    | VarList ~ "=" ~ ExpList
+    EmptyStatement
+    | ListAssignment
     | FunctionCall
     | Label
-    | "break"
-    | "goto" ~ Name
-    | "do" ~ Block ~ "end"
-    | "while" ~ Expression ~ "do" ~ Block ~ "end"
-    | "repeat" ~ Block ~ "until" ~ Expression
-    | "if" ~ Expression ~ "then" ~ Block ~ ("elseif" ~ Expression ~ "then" ~ Block)* ~ ("else" ~ Block)? ~ "end"
-    | "for" ~ Name ~ "=" ~ Expression ~ "," ~ Expression ~ ("," ~ Expression)? ~ "do" ~ Block ~ "end"
-    | "for" ~ NameList ~ "in" ~ ExpList ~ "do" ~ Block ~ "end"
-    | "function" ~ FunctionName ~ FunctionBody
-    | "local function" ~ Name ~ FunctionBody
-    | "local" ~ AttributeNameList ~ ("=" ~ ExpList)?
+    | BreakStatement
+    | GotoStatement
+    | DoBlockEndStatement
+    | WhileExprDoBlockStatement
+    | RepeatBlockUntilStatement
+    | IfStatement
+    | ForEachStatement
+    | ForListStatement
+    | FunctionStatement
+    | LocalFunctionStatement
+    | LocalAttributeNameListStatement
     ~ NEWLINE?
 }
+EmptyStatement = { ";" }
+ListAssignment = { VarList ~ "=" ~ ExpList }
+BreakStatement = { "break" }
+GotoStatement = { "goto" ~ Name }
+DoBlockEndStatement = { "do" ~ Block ~ "end" }
+WhileExprDoBlockStatement = { "while" ~ Expression ~ "do" ~ Block ~ "end" }
+RepeatBlockUntilStatement = { "repeat" ~ Block ~ "until" ~ Expression }
+IfStatement = { "if" ~ Expression ~ "then" ~ Block ~ ("elseif" ~ Expression ~ "then" ~ Block)* ~ ("else" ~ Block)? ~ "end" }
+ForEachStatement = { "for" ~ Name ~ "=" ~ Expression ~ "," ~ Expression ~ ("," ~ Expression)? ~ "do" ~ Block ~ "end" }
+ForListStatement = { "for" ~ NameList ~ "in" ~ ExpList ~ "do" ~ Block ~ "end" }
+FunctionStatement = { "function" ~ FunctionName ~ FunctionBody }
+LocalFunctionStatement = { "local function" ~ Name ~ FunctionBody }
+LocalAttributeNameListStatement = { "local" ~ AttributeNameList ~ ("=" ~ ExpList)? }
 
 Label = { "::" ~ Name ~ "::" }
 Attribute = { ("<" ~ Name ~ ">")? }
@@ -61,7 +73,11 @@ VarList = { Var ~ ("," ~ Var)* }
 ParList = { NameList ~ ("," ~ Expansion)? | Expansion }
 AttributeNameList = { Name ~ Attribute ~ ("," ~ Name ~ Attribute)* }
 
-Var = { Name ~ "." ~ Name ~ ("." ~ Name)* | Name | Name ~ "[" ~ Expression ~ "]" } //{ Name | Var ~ "[" ~ Expression ~ "]" | Var ~ "." ~ Name }
+// Var
+Var = { VarNestedAccess | VarName | VarTableAccess } //{ Name | Var ~ "[" ~ Expression ~ "]" | Var ~ "." ~ Name }
+VarNestedAccess = { Name ~ "." ~ Name ~ ("." ~ Name)* }
+VarName = { Name }
+VarTableAccess = { Name ~ "[" ~ Expression ~ "]" }
 
 // Expressions
 ExpressionInner = { "nil" | "false" | "true" | Numerical | LiteralString | Expansion | FunctionDef | TableConstructor } // | PrefixExpression
@@ -77,7 +93,8 @@ Args = { "(" ~ ExpList? ~ ")" | TableConstructor | LiteralString }
 FunctionCall = { Name ~ Args }//{ PrefixExpression ~ Args | PrefixExpression ~ ":" ~ Name ~ Args }
 FunctionDef = { "function" ~ FunctionBody }
 FunctionBody = { "(" ~ ParList? ~ ")" ~ Block ~ "end" }
-FunctionName = { Name ~ ("." ~ Name)* ~ ( ":" ~ Name )? }
+FunctionName = { Name ~ FunctionNameAccessor* ~ ( ":" ~ Name )? }
+FunctionNameAccessor = { "." ~ Name }
 
 // Fields
 FieldList = { Field ~ (FieldSep ~ Field)* ~ FieldSep? }

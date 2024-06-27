@@ -5,8 +5,8 @@ pub struct LuaProgram {
 
 #[derive(Debug)]
 pub struct Block {
-    statements: Vec<Statement>,
-    return_statement: Option<ReturnStatement>
+    pub statements: Vec<Statement>,
+    pub return_statement: Option<ReturnStatement>
 }
 
 #[derive(Debug)]
@@ -30,17 +30,17 @@ pub enum Statement {
 
 #[derive(Debug)]
 pub struct ReturnStatement {
-    expression_list: Option<ExpressionList>
+    pub expression_list: Option<ExpressionList>
 }
 
 #[derive(Debug)]
 pub struct ExpressionList {
-    expressions: Vec<Expression>
+    pub expressions: Vec<Expression>
 }
 
 #[derive(Debug)]
 pub struct NameList {
-    names: Vec<String>
+    pub names: Vec<String>
 }
 
 #[derive(Debug)]
@@ -111,7 +111,7 @@ pub enum UnaryOperator {
 
 #[derive(Debug)]
 pub struct VarList {
-    vars: Vec<Var>
+    pub vars: Vec<Var>
 }
 
 #[derive(Debug)]
@@ -123,9 +123,9 @@ pub enum Var {
 
 #[derive(Debug)]
 pub struct FunctionName {
-    outer_name: String,
-    accessor: Vec<String>,
-    pass_self: Option<String>
+    pub outer_name: String,
+    pub accessors: Vec<String>,
+    pub pass_self: Option<String>
     // foo.bar.baz:thing
     // This results in { outer_name: "foo", accessor: vec!["bar", "baz"], pass_self: Some("thing") }
     // In Lua, calling a function with `:`, like `x:bar(3, 4)` passes self and resolves to
@@ -140,8 +140,8 @@ pub enum Parameters {
 
 #[derive(Debug)]
 pub struct FunctionBody {
-    parameters: Parameters,
-    block: Block
+    pub parameters: Parameters,
+    pub block: Block
 }
 
 #[derive(Debug)]
@@ -155,8 +155,8 @@ pub enum Args {
 #[derive(Debug)]
 pub enum NumberKind {
     Int(i64),
-    Float(f64)
+    Float(f64),
 }
 
 #[derive(Debug)]
-pub struct Expansion {}
+pub struct Expansion;
