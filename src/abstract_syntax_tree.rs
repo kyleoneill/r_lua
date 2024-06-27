@@ -9,10 +9,10 @@ const RESERVED_KEYWORDS: [&str; 22] = ["and", "break", "do", "else", "elseif", "
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
-pub struct TokenPairs;
+pub struct LuaTokenPairs;
 
 pub fn parse_lua_program(input: &str) -> Result<lua_program::LuaProgram, CompileError> {
-    match TokenPairs::parse(Rule::Main, input) {
+    match LuaTokenPairs::parse(Rule::Main, input) {
         Ok(mut parsed) => {
             let pair = parsed.next().expect("Lua program must begin with a block");
             let block = parse_block_pair(pair)?;
@@ -127,14 +127,14 @@ fn parse_statement_pair(statement_pair: Pair<Rule>) -> Result<lua_program::State
             let function_name_pair = function_inner.next().expect("Rule::FunctionStatement must have a FunctionName pair");
             let function_name = parse_function_name_pair(function_name_pair)?;
             let function_body_pair = function_inner.next().expect("Rule::FunctionStatement must have a FunctionBody pair");
-            let function_body = parse_function_def_pair(function_body_pair)?;
+            let function_body = parse_function_body(function_body_pair)?;
             Ok(lua_program::Statement::Function(function_name, function_body))
         },
         Rule::LocalFunctionStatement => {
             let mut local_function_inner = next.into_inner();
             let function_name_pair = local_function_inner.next().expect("Rule::LocalFunctionStatement must have a function name");
             let function_body_pair = local_function_inner.next().expect("Rule::LocalFunctionStatement must have a function body");
-            let function_body = parse_function_def_pair(function_body_pair)?;
+            let function_body = parse_function_body(function_body_pair)?;
             Ok(lua_program::Statement::LocalFunction(function_name_pair.as_str().to_owned(), function_body))
         },
         Rule::LocalAttributeNameListStatement => todo!(),
@@ -406,11 +406,18 @@ fn parse_function_def_pair(pair: Pair<Rule>) -> Result<lua_program::FunctionBody
     }
     let mut inner = pair.into_inner();
     let function_body_pair = inner.next().expect("Rule::FunctionDef must contain one inner");
-    if function_body_pair.as_rule() != Rule::FunctionBody {
-        panic!("Rule::FunctionDef's pair must be a Rule::FunctionBody")
+    parse_function_body(function_body_pair)
+}
+
+fn parse_function_body(pair: Pair<Rule>) -> Result<lua_program::FunctionBody, CompileError> {
+    if pair.as_rule() != Rule::FunctionBody {
+        panic!("Expected pair to be a FunctionBody")
     }
-    let mut function_body_inner = function_body_pair.into_inner();
-    let parameters = parse_params_pair(function_body_inner.next().unwrap())?;
+    let mut function_body_inner = pair.into_inner();
+    let parameters = match function_body_inner.peek().is_some() && function_body_inner.peek().unwrap().as_rule() == Rule::ParList {
+        true => Some(parse_params_pair(function_body_inner.next().unwrap())?),
+        false => None
+    };
     let block = parse_block_pair(function_body_inner.next().unwrap())?;
     Ok(lua_program::FunctionBody{ parameters, block })
 }

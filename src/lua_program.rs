@@ -140,7 +140,7 @@ pub enum Parameters {
 
 #[derive(Debug)]
 pub struct FunctionBody {
-    pub parameters: Parameters,
+    pub parameters: Option<Parameters>,
     pub block: Block
 }
 
