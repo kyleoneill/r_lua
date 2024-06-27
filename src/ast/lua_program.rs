@@ -16,7 +16,7 @@ pub struct Block {
 pub enum Statement {
     Empty,
     MultipleAssignment(VarList, ExpressionList),
-    FunctionCall(Var, Args),
+    FunctionCall(Box<FunctionCall>),
     Label(String),
     Break,
     GoTo(String),
@@ -68,7 +68,7 @@ pub enum Expr {
 #[derive(Debug)]
 pub enum PrefixExpression {
     Var(Var),
-    FunctionCall(Var, Args),
+    FunctionCall(Box<FunctionCall>),
     Expression(Expression)
 }
 
@@ -147,6 +147,23 @@ pub struct FunctionName {
 pub enum Parameters {
     Normal(NameList, Option<Expansion>),
     Expanded(Expansion),
+}
+
+#[derive(Debug)]
+pub enum FunctionCall {
+    Static(StaticFunctionCall),
+    SelfRef(SelfFunctionCall)
+}
+#[derive(Debug)]
+pub struct StaticFunctionCall {
+    pub prefix: Var,
+    pub args: Args
+}
+#[derive(Debug)]
+pub struct SelfFunctionCall {
+    pub prefix: Var,
+    pub name: String,
+    pub args: Args
 }
 
 #[derive(Debug)]

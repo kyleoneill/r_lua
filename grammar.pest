@@ -102,7 +102,7 @@ PrefixExpression = { Var | FunctionCall | "(" ~ Expression ~ ")" }
 Args = { "(" ~ ExpList? ~ ")" | TableConstructor | LiteralString }
 
 // Functions
-FunctionCall = { Var ~ Args }//{ PrefixExpression ~ Args | PrefixExpression ~ ":" ~ Name ~ Args }
+FunctionCall = { Var ~ Args | Var ~ ":" ~ Name ~ Args } // TODO: Both vars should be PrefixExpression, have to resolve left recursion
 FunctionDef = { "function" ~ FunctionBody }
 FunctionBody = { "(" ~ ParList? ~ ")" ~ Block ~ "end" }
 FunctionName = { Name ~ FunctionNameAccessor* ~ ( ":" ~ Name )? }

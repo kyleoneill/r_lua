@@ -45,6 +45,17 @@ impl Data {
     }
 }
 
+#[derive(Debug)]
 pub enum DataKind {
+    String(String),
+    Number(NumberKind),
+    Bool(bool),
+    Null,
+    // TODO: Table(HashMap<String, DataKind>)
+}
 
+#[derive(Debug)]
+pub enum NumberKind {
+    Integer(i64),
+    Float(f64)
 }

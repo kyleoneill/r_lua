@@ -33,7 +33,10 @@ fn main() {
 
     match ast::parse_lua_program(file_contents.as_str()) {
         Ok(parsed_lua_program) => {
-            println!("{:#?}", parsed_lua_program);
+            match frontend::enter_program(parsed_lua_program) {
+                Ok(_) => (),
+                Err(e) => e.print_error()
+            }
         }
         Err(e) => e.print_error(),
     }

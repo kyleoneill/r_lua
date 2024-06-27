@@ -33,14 +33,22 @@ impl CompileError {
 #[derive(Debug)]
 pub enum RuntimeFailure {
     VarNotFound(String, i32),
+    FuncNotFound(String, i32),
+    BadFunctionArgs(String, i32),
     BorrowError(String, i32),
+    DuplicateFunction(String),
+    InternalError(String),
 }
 
 impl RuntimeFailure {
     pub fn print_error(&self) {
         match self {
             RuntimeFailure::VarNotFound(var_name, line) => eprintln!("Error on line {}: Variable '{}' not found", line, var_name),
-            RuntimeFailure::BorrowError(msg, line) => eprintln!("Error on line {}: {}", line, msg)
+            RuntimeFailure::FuncNotFound(func_name, line) => eprintln!("Error on line {}: Function '{}' not found", line, func_name),
+            RuntimeFailure::BadFunctionArgs(msg, line) => eprintln!("Error on line {}: {}", line, msg),
+            RuntimeFailure::BorrowError(msg, line) => eprintln!("Error on line {}: {}", line, msg),
+            RuntimeFailure::DuplicateFunction(name) => eprintln!("Error: Function '{}' defined multiple times", name),
+            RuntimeFailure::InternalError(msg) => eprintln!("Internal error while {}", msg)
         }
     }
 }

@@ -4,7 +4,7 @@ use pest_derive::Parser;
 
 use crate::err_handle::CompileError;
 
-mod lua_program;
+pub mod lua_program;
 
 // TODO: Check names for reserved keyword usage
 #[allow(dead_code)]
@@ -79,7 +79,7 @@ fn parse_statement_pair(
         }
         Rule::FunctionCall => {
             let function_call = parse_function_call_pair(next)?;
-            Ok(lua_program::Statement::FunctionCall(function_call.0, function_call.1))
+            Ok(lua_program::Statement::FunctionCall(Box::new(function_call)))
         }
         Rule::Label => Ok(lua_program::Statement::Label(next.as_str().to_owned())),
         Rule::BreakStatement => Ok(lua_program::Statement::Break),
@@ -505,29 +505,37 @@ fn parse_prefix_expression_pair(pair: Pair<Rule>) -> Result<lua_program::PrefixE
     let next = inner.next().expect("Rule::PrefixExpression must have one inner");
     match next.as_rule() {
         Rule::Var => Ok(lua_program::PrefixExpression::Var(parse_var_pair(next)?)),
-        Rule::FunctionCall => {
-            let function_call = parse_function_call_pair(next)?;
-            Ok(lua_program::PrefixExpression::FunctionCall(function_call.0, function_call.1))
-        },
+        Rule::FunctionCall => Ok(lua_program::PrefixExpression::FunctionCall(Box::new(parse_function_call_pair(next)?))),
         Rule::Expression => Ok(lua_program::PrefixExpression::Expression(parse_expression_pair(next)?)),
         _ => panic!("Matched on an undefined PrefixExpression inner pair")
     }
 }
 
-fn parse_function_call_pair(pair: Pair<Rule>) -> Result<(lua_program::Var, lua_program::Args), CompileError> {
+fn parse_function_call_pair(pair: Pair<Rule>) -> Result<lua_program::FunctionCall, CompileError> {
     if pair.as_rule() != Rule::FunctionCall {
         panic!("Expected pair to be a function call")
     }
     let mut function_call_inner = pair.into_inner();
     let fc_var_pair = function_call_inner
         .next()
-        .expect("Rule::FunctionCall must have a first inner which is a name");
-    let args_pair = function_call_inner
-        .next()
-        .expect("Rule::FunctionCall must have a second inner which is an args");
+        .expect("Rule::FunctionCall must have a first inner which is a var");
     let var = parse_var_pair(fc_var_pair)?;
-    let args = parse_args_pair(args_pair)?;
-    Ok((var, args))
+    let second_pair = function_call_inner.next().expect("Rule::FunctionCall must have a second pair");
+    match second_pair.as_rule() {
+        Rule::Args => {
+            let args = parse_args_pair(second_pair)?;
+            let global_function = lua_program::StaticFunctionCall{ prefix: var, args };
+            Ok(lua_program::FunctionCall::Static(global_function))
+        },
+        Rule::Name => {
+            let name = second_pair.as_str().to_owned();
+            let args_pair = function_call_inner.next().expect("Rule::FunctionCall must have a third inner when it's a local function");
+            let args = parse_args_pair(args_pair)?;
+            let self_func = lua_program::SelfFunctionCall{ prefix: var, name, args };
+            Ok(lua_program::FunctionCall::SelfRef(self_func))
+        },
+        _ => panic!("Matched on an undefined FunctionCall inner pair")
+    }
 }
 
 fn parse_numerical_pair(pair: Pair<Rule>) -> lua_program::NumberKind {
