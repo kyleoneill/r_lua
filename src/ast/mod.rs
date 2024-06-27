@@ -3,7 +3,8 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use crate::err_handle::CompileError;
-use crate::lua_program;
+
+mod lua_program;
 
 // TODO: Check names for reserved keyword usage
 #[allow(dead_code)]
@@ -353,15 +354,19 @@ fn parse_args_pair(args_pair: Pair<Rule>) -> Result<lua_program::Args, CompileEr
         panic!("Expected pair to be args when it was not")
     }
     let mut inner = args_pair.into_inner();
-    let next = inner.next().expect("Args must have an inner value");
-    match next.as_rule() {
-        Rule::ExpList => {
-            let expression_list = parse_expression_list_pair(next)?;
-            Ok(lua_program::Args::ExpressionList(expression_list))
+    match inner.next() {
+        Some(next) => {
+            match next.as_rule() {
+                Rule::ExpList => {
+                    let expression_list = parse_expression_list_pair(next)?;
+                    Ok(lua_program::Args::ExpressionList(Some(expression_list)))
+                }
+                // TODO: TableConstructor
+                // TODO: LiteralString
+                _ => panic!("Matched on an undefined arg"),
+            }
         }
-        // TODO: TableConstructor
-        // TODO: LiteralString
-        _ => panic!("Matched on an undefined arg"),
+        None => Ok(lua_program::Args::ExpressionList(None)),
     }
 }
 

@@ -4,3 +4,5 @@ function hello_world()
     global_var = 10
     print("Hello, World!")
 end
+
+hello_world()

@@ -149,7 +149,7 @@ pub struct FunctionBody {
 
 #[derive(Debug)]
 pub enum Args {
-    ExpressionList(ExpressionList),
+    ExpressionList(Option<ExpressionList>),
     // TODO: Support for TableConstructor and LiteralString variants
     // I think these are only useful if the recursion problem is fixed and PrefixExpression
     // is added back to the grammar

@@ -1,4 +1,4 @@
-use crate::abstract_syntax_tree::Rule;
+use crate::ast::Rule;
 
 #[derive(Debug)]
 pub struct CompileError {
