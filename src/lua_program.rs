@@ -1,12 +1,15 @@
+#![allow(dead_code)]
+// TODO: Remove this once everything is being used
+
 #[derive(Debug)]
 pub struct LuaProgram {
-    pub block: Block
+    pub block: Block,
 }
 
 #[derive(Debug)]
 pub struct Block {
     pub statements: Vec<Statement>,
-    pub return_statement: Option<ReturnStatement>
+    pub return_statement: Option<ReturnStatement>,
 }
 
 #[derive(Debug)]
@@ -30,24 +33,24 @@ pub enum Statement {
 
 #[derive(Debug)]
 pub struct ReturnStatement {
-    pub expression_list: Option<ExpressionList>
+    pub expression_list: Option<ExpressionList>,
 }
 
 #[derive(Debug)]
 pub struct ExpressionList {
-    pub expressions: Vec<Expression>
+    pub expressions: Vec<Expression>,
 }
 
 #[derive(Debug)]
 pub struct NameList {
-    pub names: Vec<String>
+    pub names: Vec<String>,
 }
 
 #[derive(Debug)]
 pub enum Expression {
-    NormalExpression(ExprInner),
-    BinaryExpr(BinaryOperator, ExprInner, ExprInner),
-    UnaryExpr(UnaryOperator, ExprInner)
+    Normal(ExprInner),
+    Binary(BinaryOperator, ExprInner, ExprInner),
+    Unary(UnaryOperator, ExprInner),
 }
 
 #[derive(Debug)]
@@ -66,7 +69,7 @@ pub enum BinaryOperator {
     MathOperator(MathOperator),
     BitwiseOperator(BitwiseOperator),
     Concat,
-    BooleanOperator(BooleanOperator)
+    BooleanOperator(BooleanOperator),
 }
 
 #[derive(Debug)]
@@ -86,7 +89,7 @@ pub enum BitwiseOperator {
     Or,
     ExclusiveOr,
     RightShift,
-    LeftShift
+    LeftShift,
 }
 
 #[derive(Debug)]
@@ -98,25 +101,26 @@ pub enum BooleanOperator {
     Equal,
     Unequal, // ~=
     And,
-    Or
+    Or,
 }
 
 #[derive(Debug)]
 pub enum UnaryOperator {
     UnaryMinus,
     Not,
-    Length, // #
-    BitwiseUnaryNot // ~
+    Length,          // #
+    BitwiseUnaryNot, // ~
 }
 
 #[derive(Debug)]
 pub struct VarList {
-    pub vars: Vec<Var>
+    pub vars: Vec<Var>,
 }
 
 #[derive(Debug)]
 pub enum Var {
     NestedAccess(Vec<String>),
+    #[allow(clippy::enum_variant_names)]
     VarName(String),
     TableAccess(String, Expression),
 }
@@ -125,23 +129,22 @@ pub enum Var {
 pub struct FunctionName {
     pub outer_name: String,
     pub accessors: Vec<String>,
-    pub pass_self: Option<String>
-    // foo.bar.baz:thing
-    // This results in { outer_name: "foo", accessor: vec!["bar", "baz"], pass_self: Some("thing") }
-    // In Lua, calling a function with `:`, like `x:bar(3, 4)` passes self and resolves to
-    // x.bar(x, 3, 4)
+    pub pass_self: Option<String>, // foo.bar.baz:thing
+                                   // This results in { outer_name: "foo", accessor: vec!["bar", "baz"], pass_self: Some("thing") }
+                                   // In Lua, calling a function with `:`, like `x:bar(3, 4)` passes self and resolves to
+                                   // x.bar(x, 3, 4)
 }
 
 #[derive(Debug)]
 pub enum Parameters {
     Normal(NameList, Option<Expansion>),
-    Expanded(Expansion)
+    Expanded(Expansion),
 }
 
 #[derive(Debug)]
 pub struct FunctionBody {
     pub parameters: Option<Parameters>,
-    pub block: Block
+    pub block: Block,
 }
 
 #[derive(Debug)]

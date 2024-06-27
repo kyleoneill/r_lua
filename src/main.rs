@@ -28,12 +28,13 @@ fn main() {
         panic!("Provided path does not correspond to a Lua file")
     }
 
-    let file_contents = fs::read_to_string(path.as_path()).unwrap_or_else(|_| panic!("Failed to read Lua file"));
+    let file_contents =
+        fs::read_to_string(path.as_path()).unwrap_or_else(|_| panic!("Failed to read Lua file"));
 
     match abstract_syntax_tree::parse_lua_program(file_contents.as_str()) {
         Ok(parsed_lua_program) => {
             println!("{:#?}", parsed_lua_program);
-        },
-        Err(e) => eprintln!("{:?}", e)
+        }
+        Err(e) => e.print_error(),
     }
 }

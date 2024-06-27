@@ -2,9 +2,9 @@ use crate::abstract_syntax_tree::Rule;
 
 #[derive(Debug)]
 pub struct CompileError {
-    error_msg : String,
+    error_msg: String,
     line: usize,
-    column: usize
+    column: usize,
 }
 
 impl CompileError {
@@ -23,6 +23,9 @@ impl CompileError {
         Self::new("Invalid Lua", line_col)
     }
     pub fn print_error(&self) {
-        eprintln!("Failed to compile Lua with error '{}' on line {} column {}", self.error_msg, self.line, self.column)
+        eprintln!(
+            "Failed to compile Lua with error '{}' on line {} column {}",
+            self.error_msg, self.line, self.column
+        )
     }
 }

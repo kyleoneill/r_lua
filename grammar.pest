@@ -12,7 +12,8 @@ Main = _{ SOI ~ Chunk ~  EOI }
 ReservedKeywords = { "and" | "break" | "do" | "else" | "elseif" | "end" | "false" | "for" | "function" | "goto" | "if" | "in" | "local" | "nil" | "not" | "or" | "repeat" | "return" | "then" | "true" | "until" | "while" }
 
 Name = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-LiteralString = {"'" ~ StringInner ~ "'" | "\"" ~ StringInner ~ "\""}
+LiteralString = {"'" ~ LiteralStringWithoutQuotations ~ "'" | "\"" ~ LiteralStringWithoutQuotations ~ "\""}
+LiteralStringWithoutQuotations = { StringInner }
 StringInner = @{ Char* }
 Char = {
     !("\"" | "\\") ~ ANY
