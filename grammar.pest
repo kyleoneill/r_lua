@@ -81,17 +81,28 @@ VarName = { Name }
 VarTableAccess = { Name ~ "[" ~ Expression ~ "]" }
 
 // Expressions
-ExpressionInner = { "nil" | "false" | "true" | Numerical | LiteralString | Expansion | FunctionDef | TableConstructor } // | PrefixExpression
-// This is a non-complete Expression broken down to avoid recursion, as resolving that will be difficult given the time constraint
-OperatorExpression = { ExpressionInner ~ BinaryOperator ~ ExpressionInner | UnaryOperator ~ ExpressionInner }
-Expression = { ExpressionInner | OperatorExpression }
+Expression = { BinaryExpression | Expr }
+BinaryExpression = { Expr ~ BinaryOperator ~ Expr }
+UnaryExpression = { UnaryOperator ~ Expression }
+Expr = {
+    "nil"
+    | "false"
+    | "true"
+    | Numerical
+    | LiteralString
+    | Expansion
+    | FunctionDef
+    | PrefixExpression
+    | TableConstructor
+    | UnaryExpression
+}
 
-// PrefixExpression = { Var | FunctionCall | "(" ~ Expression ~ ")" }
+PrefixExpression = { Var | FunctionCall | "(" ~ Expression ~ ")" }
 
 Args = { "(" ~ ExpList? ~ ")" | TableConstructor | LiteralString }
 
 // Functions
-FunctionCall = { Name ~ Args }//{ PrefixExpression ~ Args | PrefixExpression ~ ":" ~ Name ~ Args }
+FunctionCall = { Var ~ Args }//{ PrefixExpression ~ Args | PrefixExpression ~ ":" ~ Name ~ Args }
 FunctionDef = { "function" ~ FunctionBody }
 FunctionBody = { "(" ~ ParList? ~ ")" ~ Block ~ "end" }
 FunctionName = { Name ~ FunctionNameAccessor* ~ ( ":" ~ Name )? }

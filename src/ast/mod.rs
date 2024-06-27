@@ -78,18 +78,8 @@ fn parse_statement_pair(
             ))
         }
         Rule::FunctionCall => {
-            let mut function_call_inner = next.into_inner();
-            let fc_name_pair = function_call_inner
-                .next()
-                .expect("Rule::FunctionCall must have a first inner which is a name");
-            let args_pair = function_call_inner
-                .next()
-                .expect("Rule::FunctionCall must have a second inner which is an args");
-            let args = parse_args_pair(args_pair)?;
-            Ok(lua_program::Statement::FunctionCall(
-                fc_name_pair.as_str().to_owned(),
-                args,
-            ))
+            let function_call = parse_function_call_pair(next)?;
+            Ok(lua_program::Statement::FunctionCall(function_call.0, function_call.1))
         }
         Rule::Label => Ok(lua_program::Statement::Label(next.as_str().to_owned())),
         Rule::BreakStatement => Ok(lua_program::Statement::Break),
@@ -379,42 +369,30 @@ fn parse_expression_pair(
     let mut inner = statement_pair.into_inner();
     let next = inner.next().expect("Expression must have an inner value");
     match next.as_rule() {
-        Rule::ExpressionInner => {
-            let expr_inner = parse_expression_inner_pair(next)?;
-            Ok(lua_program::Expression::Normal(expr_inner))
+        Rule::BinaryExpression => {
+            let mut binary_expr_inner = next.into_inner();
+            let first_expr_pair = binary_expr_inner.next().expect("Rule::BinaryExpression must have an Expr inner");
+            let operator_pair = binary_expr_inner.next().expect("Rule::BinaryExpression must have a BinaryOperator inner");
+            let second_expr_pair = binary_expr_inner.next().expect("Rule::BinaryExpression must have a second Expr inner");
+            let first_expr = parse_expr_pair(first_expr_pair)?;
+            let operation = parse_binary_operator_pair(operator_pair);
+            let second_expr = parse_expr_pair(second_expr_pair)?;
+            Ok(lua_program::Expression::Binary(
+                operation,
+                first_expr,
+                second_expr,
+            ))
         }
-        Rule::OperatorExpression => {
-            let mut operator_exp_inner = next.into_inner();
-            let first = operator_exp_inner
-                .next()
-                .expect("OperatorExpression must have at least one inner");
-            match first.as_rule() {
-                Rule::ExpressionInner => {
-                    let first_expr = parse_expression_inner_pair(first)?;
-                    let operation = parse_binary_operator_pair(operator_exp_inner.next().unwrap());
-                    let second_expr =
-                        parse_expression_inner_pair(operator_exp_inner.next().unwrap())?;
-                    Ok(lua_program::Expression::Binary(
-                        operation,
-                        first_expr,
-                        second_expr,
-                    ))
-                }
-                Rule::UnaryOperator => {
-                    let operation = parse_unary_operator_pair(first);
-                    let expr = parse_expression_inner_pair(operator_exp_inner.next().unwrap())?;
-                    Ok(lua_program::Expression::Unary(operation, expr))
-                }
-                _ => panic!("Matched on an undefined OperatorExpression"),
-            }
+        Rule::Expr => {
+            Ok(lua_program::Expression::Expr(parse_expr_pair(next)?))
         }
         _ => panic!("Matched on an undefined Expression"),
     }
 }
 
-fn parse_expression_inner_pair(pair: Pair<Rule>) -> Result<lua_program::ExprInner, CompileError> {
-    if pair.as_rule() != Rule::ExpressionInner {
-        panic!("Expected pair to be an expression inner when it was not")
+fn parse_expr_pair(pair: Pair<Rule>) -> Result<lua_program::Expr, CompileError> {
+    if pair.as_rule() != Rule::Expr {
+        panic!("Expected pair to be an expr when it was not")
     }
     let mut inner = pair.into_inner();
     let first = inner
@@ -422,34 +400,43 @@ fn parse_expression_inner_pair(pair: Pair<Rule>) -> Result<lua_program::ExprInne
         .expect("Rule::ExpressionInner must contain an inner pair");
     let inner_str = first.as_str();
     if inner_str == "nil" {
-        return Ok(lua_program::ExprInner::Nil);
+        return Ok(lua_program::Expr::Nil);
     };
     if inner_str == "false" {
-        return Ok(lua_program::ExprInner::Boolean(false));
+        return Ok(lua_program::Expr::Boolean(false));
     };
     if inner_str == "true" {
-        return Ok(lua_program::ExprInner::Boolean(true));
+        return Ok(lua_program::Expr::Boolean(true));
     };
     match first.as_rule() {
         Rule::Numerical => {
             let number = parse_numerical_pair(first);
-            Ok(lua_program::ExprInner::Numerical(number))
+            Ok(lua_program::Expr::Numerical(number))
         }
         Rule::LiteralString => {
             let mut remove_quotes_inner = first.into_inner();
             let str_value = remove_quotes_inner.next().expect(
                 "Rule::LiteralString must have an inner value used to strip quotation marks",
             );
-            Ok(lua_program::ExprInner::LiteralString(
+            Ok(lua_program::Expr::LiteralString(
                 str_value.as_str().to_owned(),
             ))
         }
-        Rule::Expansion => Ok(lua_program::ExprInner::Expansion(lua_program::Expansion)),
-        Rule::FunctionDef => {
-            let function_body = parse_function_def_pair(first)?;
-            Ok(lua_program::ExprInner::FunctionDef(function_body))
-        }
+        Rule::Expansion => Ok(lua_program::Expr::Expansion(lua_program::Expansion)),
+        Rule::FunctionDef => Ok(lua_program::Expr::FunctionDef(parse_function_def_pair(first)?)),
+        Rule::PrefixExpression => {
+            let prefix_expr = parse_prefix_expression_pair(first)?;
+            Ok(lua_program::Expr::Prefix(Box::new(prefix_expr)))
+        },
         Rule::TableConstructor => todo!(),
+        Rule::UnaryExpression => {
+            let mut inner = first.into_inner();
+            let op_pair = inner.next().expect("Rule::UnaryExpression must have an operator pair");
+            let expression_pair = inner.next().expect("Rule::UnaryExpression must have an expression pair");
+            let op = parse_unary_operator_pair(op_pair);
+            let expression = parse_expression_pair(expression_pair)?;
+            Ok(lua_program::Expr::Unary(op, Box::new(expression)))
+        },
         _ => panic!("Matched on an undefined ExpressionInner "),
     }
 }
@@ -458,8 +445,7 @@ fn parse_binary_operator_pair(pair: Pair<Rule>) -> lua_program::BinaryOperator {
     if pair.as_rule() != Rule::BinaryOperator {
         panic!("Expected pair to be a binary operator")
     }
-    let inner = pair.into_inner();
-    match inner.as_str() {
+    match pair.as_str() {
         "+" => lua_program::BinaryOperator::MathOperator(lua_program::MathOperator::Plus),
         "-" => lua_program::BinaryOperator::MathOperator(lua_program::MathOperator::Minus),
         "*" => lua_program::BinaryOperator::MathOperator(lua_program::MathOperator::Multiply),
@@ -509,6 +495,39 @@ fn parse_unary_operator_pair(pair: Pair<Rule>) -> lua_program::UnaryOperator {
         "~" => lua_program::UnaryOperator::BitwiseUnaryNot,
         _ => panic!("Matched on an undefined unary operator"),
     }
+}
+
+fn parse_prefix_expression_pair(pair: Pair<Rule>) -> Result<lua_program::PrefixExpression, CompileError> {
+    if pair.as_rule() != Rule::PrefixExpression {
+        panic!("Expected pair to be a prefix expression")
+    }
+    let mut inner = pair.into_inner();
+    let next = inner.next().expect("Rule::PrefixExpression must have one inner");
+    match next.as_rule() {
+        Rule::Var => Ok(lua_program::PrefixExpression::Var(parse_var_pair(next)?)),
+        Rule::FunctionCall => {
+            let function_call = parse_function_call_pair(next)?;
+            Ok(lua_program::PrefixExpression::FunctionCall(function_call.0, function_call.1))
+        },
+        Rule::Expression => Ok(lua_program::PrefixExpression::Expression(parse_expression_pair(next)?)),
+        _ => panic!("Matched on an undefined PrefixExpression inner pair")
+    }
+}
+
+fn parse_function_call_pair(pair: Pair<Rule>) -> Result<(lua_program::Var, lua_program::Args), CompileError> {
+    if pair.as_rule() != Rule::FunctionCall {
+        panic!("Expected pair to be a function call")
+    }
+    let mut function_call_inner = pair.into_inner();
+    let fc_var_pair = function_call_inner
+        .next()
+        .expect("Rule::FunctionCall must have a first inner which is a name");
+    let args_pair = function_call_inner
+        .next()
+        .expect("Rule::FunctionCall must have a second inner which is an args");
+    let var = parse_var_pair(fc_var_pair)?;
+    let args = parse_args_pair(args_pair)?;
+    Ok((var, args))
 }
 
 fn parse_numerical_pair(pair: Pair<Rule>) -> lua_program::NumberKind {

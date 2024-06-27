@@ -29,3 +29,18 @@ impl CompileError {
         )
     }
 }
+
+#[derive(Debug)]
+pub enum RuntimeFailure {
+    VarNotFound(String, i32),
+    BorrowError(String, i32),
+}
+
+impl RuntimeFailure {
+    pub fn print_error(&self) {
+        match self {
+            RuntimeFailure::VarNotFound(var_name, line) => eprintln!("Error on line {}: Variable '{}' not found", line, var_name),
+            RuntimeFailure::BorrowError(msg, line) => eprintln!("Error on line {}: {}", line, msg)
+        }
+    }
+}

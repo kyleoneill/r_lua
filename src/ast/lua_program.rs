@@ -16,7 +16,7 @@ pub struct Block {
 pub enum Statement {
     Empty,
     MultipleAssignment(VarList, ExpressionList),
-    FunctionCall(String, Args),
+    FunctionCall(Var, Args),
     Label(String),
     Break,
     GoTo(String),
@@ -48,20 +48,28 @@ pub struct NameList {
 
 #[derive(Debug)]
 pub enum Expression {
-    Normal(ExprInner),
-    Binary(BinaryOperator, ExprInner, ExprInner),
-    Unary(UnaryOperator, ExprInner),
+    Expr(Expr),
+    Binary(BinaryOperator, Expr, Expr),
 }
 
 #[derive(Debug)]
-pub enum ExprInner {
+pub enum Expr {
     Nil,
     Boolean(bool),
     Numerical(NumberKind),
     LiteralString(String),
     Expansion(Expansion),
     FunctionDef(FunctionBody),
+    Prefix(Box<PrefixExpression>),
+    Unary(UnaryOperator, Box<Expression>)
     // TODO: TableConstructor,
+}
+
+#[derive(Debug)]
+pub enum PrefixExpression {
+    Var(Var),
+    FunctionCall(Var, Args),
+    Expression(Expression)
 }
 
 #[derive(Debug)]

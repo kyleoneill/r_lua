@@ -1,5 +1,6 @@
 mod ast;
 mod err_handle;
+mod frontend;
 
 use std::fs;
 use std::path::PathBuf;
