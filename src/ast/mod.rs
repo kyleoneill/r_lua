@@ -1,7 +1,6 @@
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
-
 use crate::err_handle::CompileError;
 
 pub mod lua_program;
@@ -516,23 +515,32 @@ fn parse_function_call_pair(pair: Pair<Rule>) -> Result<lua_program::FunctionCal
         panic!("Expected pair to be a function call")
     }
     let mut function_call_inner = pair.into_inner();
-    let fc_var_pair = function_call_inner
+    let first_pair = function_call_inner
         .next()
         .expect("Rule::FunctionCall must have a first inner which is a var");
-    let var = parse_var_pair(fc_var_pair)?;
-    let second_pair = function_call_inner.next().expect("Rule::FunctionCall must have a second pair");
-    match second_pair.as_rule() {
-        Rule::Args => {
-            let args = parse_args_pair(second_pair)?;
-            let global_function = lua_program::StaticFunctionCall{ prefix: var, args };
-            Ok(lua_program::FunctionCall::Static(global_function))
+    match first_pair.as_rule() {
+        Rule::Var => {
+            let var = parse_var_pair(first_pair)?;
+            let second_pair = function_call_inner.next().expect("Rule::FunctionCall must have a second pair");
+            match second_pair.as_rule() {
+                Rule::Args => {
+                    let args = parse_args_pair(second_pair)?;
+                    let global_function = lua_program::StaticFunctionCall{ prefix: var, args };
+                    Ok(lua_program::FunctionCall::Static(global_function))
+                },
+                Rule::Name => {
+                    let name = second_pair.as_str().to_owned();
+                    let args_pair = function_call_inner.next().expect("Rule::FunctionCall must have a third inner when it's a local function");
+                    let args = parse_args_pair(args_pair)?;
+                    let self_func = lua_program::SelfFunctionCall{ prefix: var, name, args };
+                    Ok(lua_program::FunctionCall::SelfRef(self_func))
+                },
+                _ => panic!("Matched on an undefined FunctionCall inner pair")
+            }
         },
-        Rule::Name => {
-            let name = second_pair.as_str().to_owned();
-            let args_pair = function_call_inner.next().expect("Rule::FunctionCall must have a third inner when it's a local function");
-            let args = parse_args_pair(args_pair)?;
-            let self_func = lua_program::SelfFunctionCall{ prefix: var, name, args };
-            Ok(lua_program::FunctionCall::SelfRef(self_func))
+        Rule::Expression => {
+            let resolved = parse_expression_pair(first_pair)?;
+            Ok(lua_program::FunctionCall::PassedExpression(resolved))
         },
         _ => panic!("Matched on an undefined FunctionCall inner pair")
     }

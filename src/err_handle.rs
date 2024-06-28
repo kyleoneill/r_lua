@@ -16,6 +16,7 @@ impl CompileError {
         }
     }
     pub fn from_pest_error(e: pest::error::Error<Rule>) -> Self {
+        println!("{:?}", e);
         let line_col = match e.line_col {
             pest::error::LineColLocation::Pos(pos) => pos,
             pest::error::LineColLocation::Span(start, _end) => start,
@@ -38,6 +39,8 @@ pub enum RuntimeFailure {
     BorrowError(String, i32),
     DuplicateFunction(String),
     InternalError(String),
+    WrongType(String, i32),
+    InvalidArgs(String, i32)
 }
 
 impl RuntimeFailure {
@@ -48,7 +51,9 @@ impl RuntimeFailure {
             RuntimeFailure::BadFunctionArgs(msg, line) => eprintln!("Error on line {}: {}", line, msg),
             RuntimeFailure::BorrowError(msg, line) => eprintln!("Error on line {}: {}", line, msg),
             RuntimeFailure::DuplicateFunction(name) => eprintln!("Error: Function '{}' defined multiple times", name),
-            RuntimeFailure::InternalError(msg) => eprintln!("Internal error while {}", msg)
+            RuntimeFailure::InternalError(msg) => eprintln!("Internal error while {}", msg),
+            RuntimeFailure::WrongType(expected_type, line) => eprintln!("Error on line {}: Expected type '{}'", line, expected_type),
+            RuntimeFailure::InvalidArgs(msg, line) => eprintln!("Error on line {}: {}", line, msg)
         }
     }
 }

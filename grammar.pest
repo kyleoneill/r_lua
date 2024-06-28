@@ -97,12 +97,12 @@ Expr = {
     | UnaryExpression
 }
 
-PrefixExpression = { Var | FunctionCall | "(" ~ Expression ~ ")" }
+PrefixExpression = { "(" ~ Expression ~ ")" | Var | FunctionCall }
 
 Args = { "(" ~ ExpList? ~ ")" | TableConstructor | LiteralString }
 
 // Functions
-FunctionCall = { Var ~ Args | Var ~ ":" ~ Name ~ Args } // TODO: Both vars should be PrefixExpression, have to resolve left recursion
+FunctionCall = { Var ~ Args | Var ~ ":" ~ Name ~ Args | "(" ~ Expression ~ ")" } // TODO: Both vars should be PrefixExpression, have to resolve left recursion
 FunctionDef = { "function" ~ FunctionBody }
 FunctionBody = { "(" ~ ParList? ~ ")" ~ Block ~ "end" }
 FunctionName = { Name ~ FunctionNameAccessor* ~ ( ":" ~ Name )? }

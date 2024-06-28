@@ -1,6 +1,9 @@
 use std::cell::{Ref, RefCell, RefMut};
+use std::fmt::{Display, Formatter};
+use std::ops::{Add, Sub};
 use std::rc::Rc;
 
+use crate::ast::lua_program::{BooleanOperator, MathOperator};
 use crate::err_handle::RuntimeFailure;
 use crate::frontend::Context;
 
@@ -45,7 +48,7 @@ impl Data {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DataKind {
     String(String),
     Number(NumberKind),
@@ -54,8 +57,150 @@ pub enum DataKind {
     // TODO: Table(HashMap<String, DataKind>)
 }
 
-#[derive(Debug)]
+impl DataKind {
+    pub fn math_binary_op(&self, other: &Self, op: MathOperator, context: &Context) -> Result<NumberKind, RuntimeFailure> {
+        let (l_num, r_num) = Self::both_numerical(context, self, other)?;
+        let l_copy = l_num.clone();
+        let r_copy = r_num.clone();
+        match op {
+            MathOperator::Plus => return Ok(l_copy.add(r_copy)),
+            MathOperator::Minus => return Ok(l_copy.sub(r_copy)),
+            MathOperator::Multiply => todo!("mul"),
+            MathOperator::FloatDivision => todo!("float_div"),
+            MathOperator::FloorDivision => todo!("floor_div"),
+            MathOperator::Exponent => todo!("exp"),
+            MathOperator::Mod => todo!("mod"),
+        }
+    }
+    pub fn boolean_binary_op(&self, other: &Self, op: BooleanOperator, context: &Context) -> Result<bool, RuntimeFailure> {
+        match op {
+            BooleanOperator::LessThan => {
+                let (l_num, r_num) = Self::both_numerical(context, self, other)?;
+                Ok(l_num < r_num)
+            },
+            BooleanOperator::LessThanEqualTo => {
+                let (l_num, r_num) = Self::both_numerical(context, self, other)?;
+                Ok(l_num <= r_num)
+            },
+            BooleanOperator::GreaterThan => {
+                let (l_num, r_num) = Self::both_numerical(context, self, other)?;
+                Ok(l_num > r_num)
+            },
+            BooleanOperator::GreaterThanEqualTo => {
+                let (l_num, r_num) = Self::both_numerical(context, self, other)?;
+                Ok(l_num >= r_num)
+            },
+            BooleanOperator::Equal => Ok(self == other),
+            BooleanOperator::Unequal => Ok(self != other),
+            BooleanOperator::And => Ok(self.is_true() && other.is_true()),
+            BooleanOperator::Or => Ok(self.is_true() || other.is_true()),
+        }
+    }
+    fn both_numerical<'a>(context: &Context, first: &'a Self, second: &'a Self) -> Result<(&'a NumberKind, &'a NumberKind), RuntimeFailure> {
+        if let DataKind::Number(l_num) = first {
+            if let DataKind::Number(r_num) = second {
+                return Ok((l_num, r_num))
+            }
+        }
+        Err(RuntimeFailure::WrongType("Number".to_string(), context.current_line))
+    }
+    pub fn is_true(&self) -> bool {
+        match self {
+            DataKind::String(string) => !string.is_empty(),
+            DataKind::Number(num) => {
+                match num {
+                    NumberKind::Integer(int) => *int != 0,
+                    NumberKind::Float(float) => *float != 0.0f64
+                }
+            },
+            DataKind::Bool(bool) => *bool,
+            DataKind::Null => false
+        }
+    }
+}
+
+impl Display for DataKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DataKind::String(string) => write!(f, "{}", string),
+            DataKind::Number(num) => write!(f, "{}", num),
+            DataKind::Bool(bool) => write!(f, "{}", bool),
+            DataKind::Null => write!(f, "nil"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum NumberKind {
     Integer(i64),
     Float(f64)
+}
+
+impl Display for NumberKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NumberKind::Integer(int) => write!(f, "{}", int),
+            NumberKind::Float(float) => write!(f, "{}", float),
+        }
+    }
+}
+
+impl Add for NumberKind {
+    type Output = NumberKind;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // There has to be a better way to do this
+        match self {
+            NumberKind::Integer(lhs_int) => {
+                match rhs {
+                    NumberKind::Integer(rhs_int) => {
+                        NumberKind::Integer(lhs_int + rhs_int)
+                    },
+                    NumberKind::Float(rhs_float) => {
+                        NumberKind::Float(lhs_int as f64 + rhs_float)
+                    }
+                }
+            },
+            NumberKind::Float(lhs_float) => {
+                match rhs {
+                    NumberKind::Integer(rhs_int) => {
+                        NumberKind::Float(lhs_float + rhs_int as f64)
+                    },
+                    NumberKind::Float(rhs_float) => {
+                        NumberKind::Float(lhs_float + rhs_float)
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Sub for NumberKind {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // There has to be a better way to do this
+        match self {
+            NumberKind::Integer(lhs_int) => {
+                match rhs {
+                    NumberKind::Integer(rhs_int) => {
+                        NumberKind::Integer(lhs_int - rhs_int)
+                    },
+                    NumberKind::Float(rhs_float) => {
+                        NumberKind::Float(lhs_int as f64 - rhs_float)
+                    }
+                }
+            },
+            NumberKind::Float(lhs_float) => {
+                match rhs {
+                    NumberKind::Integer(rhs_int) => {
+                        NumberKind::Float(lhs_float - rhs_int as f64)
+                    },
+                    NumberKind::Float(rhs_float) => {
+                        NumberKind::Float(lhs_float - rhs_float)
+                    }
+                }
+            }
+        }
+    }
 }

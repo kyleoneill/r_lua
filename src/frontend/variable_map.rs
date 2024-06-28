@@ -33,4 +33,8 @@ impl VariableMap {
     pub fn insert(&mut self, key: String, value: Data) {
         self.map.insert(key, value);
     }
+
+    pub fn remove(&mut self, key: &str) {
+        self.map.remove(key);
+    }
 }

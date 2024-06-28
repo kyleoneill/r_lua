@@ -6,13 +6,13 @@ pub struct LuaProgram {
     pub block: Block,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub statements: Vec<Statement>,
     pub return_statement: Option<ReturnStatement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Empty,
     MultipleAssignment(VarList, ExpressionList),
@@ -31,28 +31,28 @@ pub enum Statement {
     // TODO: local AttributeNameList = ExpressionList
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
     pub expression_list: Option<ExpressionList>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionList {
     pub expressions: Vec<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NameList {
     pub names: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Expr(Expr),
     Binary(BinaryOperator, Expr, Expr),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Nil,
     Boolean(bool),
@@ -65,14 +65,14 @@ pub enum Expr {
     // TODO: TableConstructor,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PrefixExpression {
     Var(Var),
     FunctionCall(Box<FunctionCall>),
     Expression(Expression)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinaryOperator {
     MathOperator(MathOperator),
     BitwiseOperator(BitwiseOperator),
@@ -80,7 +80,7 @@ pub enum BinaryOperator {
     BooleanOperator(BooleanOperator),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MathOperator {
     Plus,
     Minus,
@@ -91,7 +91,7 @@ pub enum MathOperator {
     Mod,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BitwiseOperator {
     And,
     Or,
@@ -100,7 +100,7 @@ pub enum BitwiseOperator {
     LeftShift,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BooleanOperator {
     LessThan,
     LessThanEqualTo,
@@ -112,7 +112,7 @@ pub enum BooleanOperator {
     Or,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnaryOperator {
     UnaryMinus,
     Not,
@@ -120,12 +120,12 @@ pub enum UnaryOperator {
     BitwiseUnaryNot, // ~
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VarList {
     pub vars: Vec<Var>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Var {
     NestedAccess(Vec<String>),
     #[allow(clippy::enum_variant_names)]
@@ -133,7 +133,7 @@ pub enum Var {
     TableAccess(String, Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionName {
     pub outer_name: String,
     pub accessors: Vec<String>,
@@ -143,36 +143,37 @@ pub struct FunctionName {
                                    // x.bar(x, 3, 4)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Parameters {
     Normal(NameList, Option<Expansion>),
     Expanded(Expansion),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FunctionCall {
     Static(StaticFunctionCall),
-    SelfRef(SelfFunctionCall)
+    SelfRef(SelfFunctionCall),
+    PassedExpression(Expression)
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StaticFunctionCall {
     pub prefix: Var,
     pub args: Args
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SelfFunctionCall {
     pub prefix: Var,
     pub name: String,
     pub args: Args
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionBody {
     pub parameters: Option<Parameters>,
     pub block: Block,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Args {
     ExpressionList(Option<ExpressionList>),
     // TODO: Support for TableConstructor and LiteralString variants
@@ -180,11 +181,11 @@ pub enum Args {
     // is added back to the grammar
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NumberKind {
     Int(i64),
     Float(f64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Expansion;

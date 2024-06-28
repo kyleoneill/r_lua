@@ -1,10 +1,10 @@
-use crate::ast::lua_program::Block;
+use crate::ast::lua_program::FunctionBody;
 use crate::err_handle::RuntimeFailure;
 use crate::frontend::Context;
 use crate::frontend::data::DataKind;
 
 pub enum FunctionKind {
-    External(Block),
+    External(FunctionBody),
     Internal(InternalFunctionTypes)
 }
 
